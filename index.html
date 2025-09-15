@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEEE Std 80 - Substation Grounding Design Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+            color: #d1d5db; /* text-gray-300 */
+        }
+        .card {
+            background-color: #1f2937; /* bg-gray-800 */
+            border: 1px solid #374151; /* border-gray-700 */
+        }
+        .btn-primary { background-color: #0891b2; }
+        .btn-primary:hover { background-color: #0e7490; }
+        .btn-secondary { background-color: #4b5563; }
+        .btn-secondary:hover { background-color: #374151; }
+        .btn-disabled { background-color: #374151; cursor: not-allowed; }
+        input[type="number"] { -moz-appearance: textfield; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        canvas { touch-action: none; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-cyan-400">IEEE Std 80 Grounding Design Calculator</h1>
+            <p class="text-gray-400 mt-2">An interactive tool for AC substation grounding safety analysis.</p>
+        </header>
+
+        <div class="space-y-8">
+            <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Column 1: Inputs -->
+                <div class="flex flex-col gap-8">
+                    <section class="card p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-gray-700 pb-2">1. Site & Soil Parameters</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="soilType" class="block text-sm font-medium">Typical Soil Type</label>
+                                <select id="soilType" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 text-white p-2">
+                                    <option value="10">Wet Organic Soil</option>
+                                    <option value="100">Moist Soil</option>
+                                    <option value="400">Moist Clay / Loam (Example)</option>
+                                    <option value="1000">Dry Soil</option>
+                                    <option value="10000">Bedrock</option>
+                                    <option value="custom">Custom...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="soilResistivity" class="block text-sm font-medium">Native Soil Resistivity (ρ)</label>
+                                <div class="flex items-center gap-2"><input type="number" id="soilResistivity" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">Ω-m</span></div>
+                            </div>
+                            <div>
+                                <label for="surfaceResistivity" class="block text-sm font-medium">Surface Material Resistivity (ρs)</label>
+                                <div class="flex items-center gap-2"><input type="number" id="surfaceResistivity" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">Ω-m</span></div>
+                            </div>
+                            <div>
+                                <label for="surfaceThickness" class="block text-sm font-medium">Surface Material Thickness (hs)</label>
+                                <div class="flex items-center gap-2"><input type="number" id="surfaceThickness" step="0.01" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">m</span></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-gray-700 pb-2">2. Fault Parameters</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="faultCurrent" class="block text-sm font-medium">Symmetrical Fault Current (3I₀)</label>
+                                <div class="flex items-center gap-2"><input type="number" id="faultCurrent" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">A</span></div>
+                            </div>
+                            <div>
+                                <label for="faultDuration" class="block text-sm font-medium">Fault & Shock Duration (tf = ts)</label>
+                                <div class="flex items-center gap-2"><input type="number" id="faultDuration" step="0.1" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">s</span></div>
+                            </div>
+                            <div>
+                                <label for="splitFactor" class="block text-sm font-medium">Current Division Factor (Sf)</label>
+                                <div class="flex items-center gap-2"><input type="number" id="splitFactor" step="0.05" min="0" max="1" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"></div>
+                            </div>
+                            <div>
+                                <label for="decrementFactor" class="block text-sm font-medium">Decrement Factor (Df)</label>
+                                <div class="flex items-center gap-2"><input type="number" id="decrementFactor" step="0.01" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Column 2: Grid Design -->
+                <div class="flex flex-col gap-8">
+                    <section class="card p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-gray-700 pb-2">3. Ground Grid Design</h2>
+                        <div class="flex items-center gap-4 mb-4">
+                            <button id="suggestDesignButton" class="w-full btn-primary text-white font-bold py-2 px-4 rounded-lg transition duration-300">Suggest a Safe Design</button>
+                            <button id="resetButton" class="w-full btn-secondary text-white font-bold py-2 px-4 rounded-lg transition duration-300">Reset to Defaults</button>
+                        </div>
+                        <div class="space-y-4">
+                            <div><label for="gridLengthX" class="block text-sm font-medium">Grid Length (Lx)</label><div class="flex items-center gap-2"><input type="number" id="gridLengthX" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">m</span></div></div>
+                            <div><label for="gridLengthY" class="block text-sm font-medium">Grid Width (Ly)</label><div class="flex items-center gap-2"><input type="number" id="gridLengthY" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">m</span></div></div>
+                            <div><label for="conductorSpacing" class="block text-sm font-medium">Conductor Spacing (D)</label><div class="flex items-center gap-2"><input type="number" id="conductorSpacing" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">m</span></div></div>
+                            <div><label for="gridDepth" class="block text-sm font-medium">Grid Burial Depth (h)</label><div class="flex items-center gap-2"><input type="number" id="gridDepth" step="0.1" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">m</span></div></div>
+                            <div><label for="conductorDiameter" class="block text-sm font-medium">Conductor Diameter (d)</label><div class="flex items-center gap-2"><input type="number" id="conductorDiameter" step="0.0001" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">m</span></div></div>
+                            <div class="pt-4 border-t border-gray-700">
+                                <h3 class="text-lg font-medium text-gray-300">Ground Rods</h3>
+                                <div><label for="numRods" class="block text-sm font-medium">Number of Rods (nR)</label><div class="flex items-center gap-2"><input type="number" id="numRods" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"></div></div>
+                                <div class="mt-4"><label for="rodLength" class="block text-sm font-medium">Length of Each Rod (Lr)</label><div class="flex items-center gap-2"><input type="number" id="rodLength" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"><span class="text-gray-400">m</span></div></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Column 3: Outputs -->
+                <div class="flex flex-col gap-8">
+                    <section class="card p-6 rounded-xl shadow-lg"><h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-gray-700 pb-2">Grid Visualization</h2><canvas id="gridCanvas" class="w-full h-64 bg-gray-700 rounded-lg"></canvas></section>
+                    <section class="card p-6 rounded-xl shadow-lg flex-grow">
+                        <h2 class="text-xl font-semibold mb-4 text-cyan-400 border-b border-gray-700 pb-2">Results & Assessment</h2>
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <div><h3 class="font-bold text-lg text-gray-300">Tolerable Limits</h3><div class="mt-2 space-y-2 text-sm"><div class="flex justify-between items-baseline"><span>Touch Voltage (Etouch):</span><span id="tolerableTouchVoltage" class="font-bold text-lg text-green-400"></span></div><div class="flex justify-between items-baseline"><span>Step Voltage (Estep):</span><span id="tolerableStepVoltage" class="font-bold text-lg text-green-400"></span></div></div></div>
+                                <hr class="border-gray-700"/>
+                                <div><h3 class="font-bold text-lg text-gray-300">Grid Performance</h3><div class="mt-2 space-y-2 text-sm"><div class="flex justify-between items-baseline"><span>Max Grid Current (IG):</span><span id="gridCurrent" class="font-bold text-lg text-yellow-400"></span></div><div class="flex justify-between items-baseline"><span>Grid Resistance (Rg):</span><span id="gridResistance" class="font-bold text-lg text-yellow-400"></span></div><hr class="border-gray-600 my-1"/><div class="flex justify-between items-baseline"><span>Ground Potential Rise (GPR):</span><span id="gpr" class="font-bold text-xl text-red-400"></span></div><hr class="border-gray-600 my-1"/><div class="flex justify-between items-baseline"><span>Actual Mesh Voltage (Em):</span><span id="meshVoltage" class="font-bold text-lg text-red-400"></span></div><div class="flex justify-between items-baseline"><span>Actual Step Voltage (Es):</span><span id="stepVoltage" class="font-bold text-lg text-red-400"></span></div></div></div>
+                            </div>
+                            <div id="safetyAssessment" class="space-y-4">
+                               <div id="touchSafetyCheck" class="flex items-center p-3 rounded-lg"><div class="mr-3" id="touchIcon"></div><div><p class="font-semibold" id="touchSafetyStatus"></p><p class="text-sm text-gray-400" id="touchSafetyMessage"></p></div></div>
+                               <div id="stepSafetyCheck" class="flex items-center p-3 rounded-lg"><div class="mr-3" id="stepIcon"></div><div><p class="font-semibold" id="stepSafetyStatus"></p><p class="text-sm text-gray-400" id="stepSafetyMessage"></p></div></div>
+                               <div id="gprSafetyCheck" class="flex items-center p-3 rounded-lg"><div class="mr-3" id="gprIcon"></div><div><p class="font-semibold" id="gprStatus"></p><p class="text-sm text-gray-400" id="gprMessage"></p></div></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+
+            <!-- Full Width Section for Monte Carlo -->
+            <section class="lg:col-span-3 card p-6 rounded-xl shadow-lg mt-8">
+                <h2 class="text-2xl font-semibold mb-4 text-cyan-400 border-b border-gray-700 pb-2">Monte Carlo Lowest GPR Optimization</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 space-y-4"><p class="text-gray-400 text-sm">Explore random designs to find parameters that minimize GPR, regardless of safety.</p><div><label for="mcSimulations" class="block text-sm font-medium">Number of Simulations</label><input type="number" id="mcSimulations" value="5000" step="1000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium">Min Area (m²)</label><input type="number" id="mcMinArea" class="mt-1 w-full bg-gray-900 border-gray-600 rounded-md p-2"></div><div><label class="block text-sm font-medium">Max Area (m²)</label><input type="number" id="mcMaxArea" class="mt-1 w-full bg-gray-900 border-gray-600 rounded-md p-2"></div><div><label class="block text-sm font-medium">Min Spacing (m)</label><input type="number" id="mcMinSpacing" class="mt-1 w-full bg-gray-900 border-gray-600 rounded-md p-2"></div><div><label class="block text-sm font-medium">Max Spacing (m)</label><input type="number" id="mcMaxSpacing" class="mt-1 w-full bg-gray-900 border-gray-600 rounded-md p-2"></div><div><label class="block text-sm font-medium">Min Rods</label><input type="number" id="mcMinRods" class="mt-1 w-full bg-gray-900 border-gray-600 rounded-md p-2"></div><div><label class="block text-sm font-medium">Max Rods</label><input type="number" id="mcMaxRods" class="mt-1 w-full bg-gray-900 border-gray-600 rounded-md p-2"></div></div><button id="runMcButton" class="w-full btn-secondary text-white font-bold py-2 px-4 rounded-lg transition duration-300">Find Lowest GPR Design</button></div>
+                    <div class="md:col-span-2 bg-gray-900 p-6 rounded-lg"><h3 class="text-lg font-semibold mb-2">Lowest GPR Design Found</h3><div id="mcProgressContainer" class="w-full bg-gray-700 rounded-full h-2.5 mb-4 hidden"><div id="mcProgressBar" class="bg-cyan-600 h-2.5 rounded-full" style="width: 0%"></div></div><div id="mcResultDisplay" class="text-gray-400">Set ranges and click "Run Simulation" to begin.</div></div>
+                </div>
+            </section>
+        </div>
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-500 text-sm"><p>Disclaimer: This tool is for educational purposes. All designs must be verified by a qualified engineer.</p><p>Based on IEEE Std 80-2013 formulas.</p></footer>
+    </div>
+
+    <script>
+        // --- 1. CONFIG & REFERENCES ---
+        const DEFAULT_PARAMS = {
+            soilResistivity: 400, surfaceResistivity: 2500, surfaceThickness: 0.1,
+            faultCurrent: 3180, faultDuration: 0.5, splitFactor: 0.6, decrementFactor: 1.0,
+            gridLengthX: 70, gridLengthY: 70, conductorSpacing: 7, gridDepth: 0.5,
+            conductorDiameter: 0.0105, numRods: 0, rodLength: 7.5, soilType: "400"
+        };
+        const dom = {
+            inputs: {
+                soilType: document.getElementById('soilType'),
+                soilResistivity: document.getElementById('soilResistivity'),
+                surfaceResistivity: document.getElementById('surfaceResistivity'),
+                surfaceThickness: document.getElementById('surfaceThickness'),
+                faultCurrent: document.getElementById('faultCurrent'),
+                faultDuration: document.getElementById('faultDuration'),
+                splitFactor: document.getElementById('splitFactor'),
+                decrementFactor: document.getElementById('decrementFactor'),
+                gridLengthX: document.getElementById('gridLengthX'),
+                gridLengthY: document.getElementById('gridLengthY'),
+                conductorSpacing: document.getElementById('conductorSpacing'),
+                gridDepth: document.getElementById('gridDepth'),
+                conductorDiameter: document.getElementById('conductorDiameter'),
+                numRods: document.getElementById('numRods'),
+                rodLength: document.getElementById('rodLength'),
+            },
+            outputs: {
+                tolerableTouch: document.getElementById('tolerableTouchVoltage'),
+                tolerableStep: document.getElementById('tolerableStepVoltage'),
+                gridCurrent: document.getElementById('gridCurrent'),
+                gridResistance: document.getElementById('gridResistance'),
+                gpr: document.getElementById('gpr'),
+                meshVoltage: document.getElementById('meshVoltage'),
+                stepVoltage: document.getElementById('stepVoltage'),
+                touchIcon: document.getElementById('touchIcon'),
+                touchSafetyStatus: document.getElementById('touchSafetyStatus'),
+                touchSafetyMessage: document.getElementById('touchSafetyMessage'),
+                stepIcon: document.getElementById('stepIcon'),
+                stepSafetyStatus: document.getElementById('stepSafetyStatus'),
+                stepSafetyMessage: document.getElementById('stepSafetyMessage'),
+                gprIcon: document.getElementById('gprIcon'),
+                gprStatus: document.getElementById('gprStatus'),
+                gprMessage: document.getElementById('gprMessage'),
+            },
+            buttons: {
+                suggestDesign: document.getElementById('suggestDesignButton'),
+                reset: document.getElementById('resetButton'),
+                runMc: document.getElementById('runMcButton'),
+            },
+            canvas: document.getElementById('gridCanvas'),
+            mc: {
+                simulations: document.getElementById('mcSimulations'),
+                minArea: document.getElementById('mcMinArea'),
+                maxArea: document.getElementById('mcMaxArea'),
+                minSpacing: document.getElementById('mcMinSpacing'),
+                maxSpacing: document.getElementById('mcMaxSpacing'),
+                minRods: document.getElementById('mcMinRods'),
+                maxRods: document.getElementById('mcMaxRods'),
+                progressContainer: document.getElementById('mcProgressContainer'),
+                progressBar: document.getElementById('mcProgressBar'),
+                resultDisplay: document.getElementById('mcResultDisplay'),
+            }
+        };
+
+        const format = (val, dec = 0) => isFinite(val) ? val.toFixed(dec) : 'N/A';
+
+        // --- 2. CORE CALCULATION ENGINE ---
+        function calculatePerformance(params) {
+            const { p, ps, hs, I_fault, tf, Sf, Df, Lx, Ly, D, h, d, nR, Lr } = params;
+            if ([p, ps, hs, I_fault, tf, Sf, Df, Lx, Ly, D, h, d, nR, Lr].some(val => !isFinite(val) || val < 0)) return { Etouch_70: NaN, Estep_70: NaN, IG: NaN, Rg: NaN, GPR: NaN, Em: NaN, Es: NaN };
+            const ts = tf;
+            const A = Lx * Ly;
+            if (A <= 0 || D <= 0 || h <= 0 || d <= 0 || ts <= 0) return { Etouch_70: NaN, Estep_70: NaN, IG: NaN, Rg: NaN, GPR: NaN, Em: NaN, Es: NaN };
+            const Nx = Math.floor(Lx / D) + 1, Ny = Math.floor(Ly / D) + 1, Lc = (Nx * Ly) + (Ny * Lx), LR = nR * Lr, LT = Lc + LR, Lp = 2 * (Lx + Ly);
+            let Cs = 1.0;
+            if (ps > 0 && hs > 0 && p !== ps) Cs = 1 - (0.09 * (1 - p / ps)) / (2 * hs + 0.09);
+            const Etouch_70 = (1000 + 1.5 * Cs * ps) * 0.157 / Math.sqrt(ts), Estep_70 = (1000 + 6.0 * Cs * ps) * 0.157 / Math.sqrt(ts);
+            let Rg = Infinity;
+            if (LT > 0) Rg = p * (1/LT + (1/Math.sqrt(20 * A)) * (1 + 1/(1 + h * Math.sqrt(20/A))));
+            const IG = I_fault * Sf * Df, GPR = IG * Rg;
+            let Em = Infinity, Es = Infinity;
+            const na = (Lp > 0) ? (2 * Lc) / Lp : 0, nb = Math.sqrt(Lp / (4 * Math.sqrt(A))), n = na * nb;
+            if (isFinite(n) && n > 0) {
+                const h0 = 1.0, Kh = Math.sqrt(1 + h / h0), Ki = 0.644 + 0.148 * n, Kii = (nR === 0) ? 1 / Math.pow(2 * n, 2 / n) : 1.0;
+                const km_log_arg1 = (D*D / (16*h*d)) + (Math.pow(D + 2*h, 2) / (8*D*d)) - (h / (4*d)), km_log_arg2 = 8 / (Math.PI * (2*n - 1));
+                if (km_log_arg1 > 0 && km_log_arg2 > 0) {
+                    const Km = (1/(2*Math.PI)) * (Math.log(km_log_arg1) + (Kii / Kh) * Math.log(km_log_arg2));
+                    let LM = Lc + LR;
+                    if (nR > 0 && (Lx*Lx + Ly*Ly > 0) ) LM = Lc + (1.55 + 1.22 * (Lr / Math.sqrt(Lx*Lx + Ly*Ly))) * LR;
+                    if (LM > 0) Em = (p * IG * Km * Ki) / LM;
+                }
+                const Ks = (1 / Math.PI) * (1/(2*h) + 1/(D+h) + (1/D)*(1 - Math.pow(0.5, n-2)));
+                const LS = 0.75 * Lc + 0.85 * LR;
+                if (LS > 0) Es = (p * IG * Ks * Ki) / LS;
+            }
+            return { Etouch_70, Estep_70, IG, Rg, GPR, Em, Es, LT };
+        }
+
+        // --- 3. UI & VISUALIZATION ---
+        function updateUI(results) {
+            dom.outputs.tolerableTouch.textContent = `${format(results.Etouch_70, 0)} V`;
+            dom.outputs.tolerableStep.textContent = `${format(results.Estep_70, 0)} V`;
+            dom.outputs.gridCurrent.textContent = `${format(results.IG, 0)} A`;
+            dom.outputs.gridResistance.textContent = `${format(results.Rg, 2)} Ω`;
+            dom.outputs.gpr.textContent = `${format(results.GPR, 0)} V`;
+            dom.outputs.meshVoltage.textContent = `${format(results.Em, 0)} V`;
+            dom.outputs.stepVoltage.textContent = `${format(results.Es, 0)} V`;
+            updateSafetyAssessment(results);
+        }
+
+        function updateSafetyAssessment(results) {
+            const { GPR, Em, Es, Etouch_70, Estep_70 } = results;
+            updateCheck('touch', Em < Etouch_70, `Calculated Em (${format(Em)}V) is ${Em < Etouch_70 ? 'below' : 'above'} tolerable limit.`);
+            updateCheck('step', Es < Estep_70, `Calculated Es (${format(Es)}V) is ${Es < Estep_70 ? 'below' : 'above'} tolerable limit.`);
+            updateCheck('gpr', GPR < Etouch_70, `GPR (${format(GPR)}V) is ${GPR < Etouch_70 ? 'below' : 'above'} tolerable touch limit.`, true);
+        }
+
+        function updateCheck(type, isSafe, message, useWarning = false) {
+            const container = document.getElementById(`${type}SafetyCheck`);
+            const iconEl = dom.outputs[`${type}Icon`];
+            let statusEl = dom.outputs[`${type}SafetyStatus`];
+            let msgEl = dom.outputs[`${type}SafetyMessage`];
+            if(type === 'gpr') { statusEl = dom.outputs.gprStatus; msgEl = dom.outputs.gprMessage; }
+            if (!container || !iconEl || !statusEl || !msgEl) return;
+            const state = isSafe ? 'safe' : (useWarning ? 'warning' : 'unsafe');
+            const colors = { safe: 'green', unsafe: 'red', warning: 'yellow' };
+            const statuses = { safe: `${type.charAt(0).toUpperCase()+type.slice(1)} is SAFE`, unsafe: `${type.charAt(0).toUpperCase()+type.slice(1)} is UNSAFE`, warning: 'GPR Exceeds Touch Limit' };
+            if (type === 'gpr' && isSafe) statuses.safe = 'GPR is Inherently Safe';
+            container.className = `flex items-center p-3 rounded-lg bg-${colors[state]}-500/10`;
+            iconEl.innerHTML = `<svg class="w-8 h-8 text-${colors[state]}-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">${state==='safe'?'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>':(state==='unsafe'?'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>':'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>')}</svg>`;
+            statusEl.textContent = statuses[state]; statusEl.className = `font-semibold text-${colors[state]}-400`; msgEl.textContent = message;
+        }
+
+        function drawGrid() {
+            const canvas = dom.canvas, ctx = canvas.getContext('2d'), dpr = window.devicePixelRatio || 1, rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width*dpr; canvas.height = rect.height*dpr; ctx.scale(dpr,dpr);
+            const Lx = parseFloat(dom.inputs.gridLengthX.value), Ly = parseFloat(dom.inputs.gridLengthY.value), D = parseFloat(dom.inputs.conductorSpacing.value), nR = parseInt(dom.inputs.numRods.value);
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(!isFinite(Lx)||!isFinite(Ly)||!isFinite(D)||Lx<=0||Ly<=0||D<=0)return;
+            const padding=30,drawWidth=canvas.clientWidth-2*padding,drawHeight=canvas.clientHeight-2*padding,scale=Math.min(drawWidth/Lx,drawHeight/Ly),scaledWidth=Lx*scale,scaledHeight=Ly*scale,offsetX=padding+(drawWidth-scaledWidth)/2,offsetY=padding+(drawHeight-scaledHeight)/2;
+            ctx.fillStyle='#374151';ctx.fillRect(offsetX,offsetY,scaledWidth,scaledHeight);
+            ctx.strokeStyle='#d97706';ctx.lineWidth=2;
+            const numX = D>0?Math.floor(Lx/D)+1:1;
+            for(let i=0;i<numX;i++){const x=offsetX+(i*D*scale);if(x<=offsetX+scaledWidth+0.1){ctx.beginPath();ctx.moveTo(x,offsetY);ctx.lineTo(x,offsetY+scaledHeight);ctx.stroke();}}
+            if((numX-1)*D<Lx){const x=offsetX+scaledWidth;ctx.beginPath();ctx.moveTo(x,offsetY);ctx.lineTo(x,offsetY+scaledHeight);ctx.stroke();}
+            const numY = D>0?Math.floor(Ly/D)+1:1;
+            for(let i=0;i<numY;i++){const y=offsetY+(i*D*scale);if(y<=offsetY+scaledHeight+0.1){ctx.beginPath();ctx.moveTo(offsetX,y);ctx.lineTo(offsetX+scaledWidth,y);ctx.stroke();}}
+            if((numY-1)*D<Ly){const y=offsetY+scaledHeight;ctx.beginPath();ctx.moveTo(offsetX,y);ctx.lineTo(offsetX+scaledWidth,y);ctx.stroke();}
+            if(nR>0){ctx.fillStyle='#94a3b8';const perimeterNodes=[];for(let i=0;i<numX;i++){const xPos=i*D;if(xPos<=Lx)perimeterNodes.push({x:xPos,y:0},{x:xPos,y:Ly});}
+            if((numX-1)*D<Lx){perimeterNodes.push({x:Lx,y:0},{x:Lx,y:Ly});}
+            for(let i=1;i<numY-1;i++){const yPos=i*D;if(yPos<Ly){perimeterNodes.push({x:0,y:yPos},{x:Lx,y:yPos});}}
+            const uniqueNodes=Array.from(new Set(perimeterNodes.map(JSON.stringify)),JSON.parse);const step=Math.max(1,Math.floor(uniqueNodes.length/nR));
+            for(let i=0;i<nR;i++){const nodeIndex=(i*step)%uniqueNodes.length;const node=uniqueNodes[nodeIndex];if(node){const rodX=offsetX+node.x*scale;const rodY=offsetY+node.y*scale;ctx.beginPath();ctx.arc(rodX,rodY,5,0,Math.PI*2);ctx.fill();ctx.stroke();}}}
+            ctx.strokeStyle='#9ca3af';ctx.fillStyle='#e5e7eb';ctx.font='12px Inter';ctx.textAlign='center';ctx.textBaseline='bottom';
+            ctx.beginPath();ctx.moveTo(offsetX,offsetY-15);ctx.lineTo(offsetX+scaledWidth,offsetY-15);ctx.moveTo(offsetX,offsetY-20);ctx.lineTo(offsetX,offsetY-10);ctx.moveTo(offsetX+scaledWidth,offsetY-20);ctx.lineTo(offsetX+scaledWidth,offsetY-10);ctx.stroke();
+            ctx.fillText(`${Lx.toFixed(1)} m`,offsetX+scaledWidth/2,offsetY-18);
+            ctx.textAlign='left';ctx.textBaseline='middle';ctx.save();ctx.translate(offsetX-15,offsetY+scaledHeight/2);ctx.rotate(-Math.PI/2);ctx.fillText(`${Ly.toFixed(1)} m`,0,0);ctx.restore();
+            ctx.beginPath();ctx.moveTo(offsetX-15,offsetY);ctx.lineTo(offsetX-15,offsetY+scaledHeight);ctx.moveTo(offsetX-20,offsetY);ctx.lineTo(offsetX-10,offsetY);ctx.moveTo(offsetX-20,offsetY+scaledHeight);ctx.lineTo(offsetX-10,offsetY+scaledHeight);ctx.stroke();
+        }
+
+        // --- 4. CONTROLLERS & EVENT HANDLERS ---
+        function readParamsFromDOM() {
+            const params = {};
+            for (const key in dom.inputs) {
+                if (key !== 'soilType') params[key] = parseFloat(dom.inputs[key].value);
+            }
+            return { p: params.soilResistivity, ps: params.surfaceResistivity, hs: params.surfaceThickness, I_fault: params.faultCurrent, tf: params.faultDuration, Sf: params.splitFactor, Df: params.decrementFactor, Lx: params.gridLengthX, Ly: params.gridLengthY, D: params.conductorSpacing, h: params.gridDepth, d: params.conductorDiameter, nR: parseInt(dom.inputs.numRods.value), Lr: params.rodLength };
+        }
+
+        function mainUpdate() {
+            const params = readParamsFromDOM();
+            const results = calculatePerformance(params);
+            updateUI(results);
+            drawGrid();
+        }
+        
+        function setInputs(params) {
+            for (const key in params) {
+                if (dom.inputs[key]) dom.inputs[key].value = params[key];
+            }
+            mainUpdate();
+        }
+
+        function handleSoilTypeChange() {
+            const selectedValue = dom.inputs.soilType.value;
+            if (selectedValue !== 'custom') {
+                dom.inputs.soilResistivity.value = selectedValue;
+                mainUpdate();
+            }
+        }
+        
+        function handleResistivityInput() {
+            const currentVal = parseFloat(dom.inputs.soilResistivity.value);
+            let match = false;
+            for (const option of dom.inputs.soilType.options) { if (parseFloat(option.value) === currentVal) { dom.inputs.soilType.value = option.value; match = true; break; } }
+            if (!match) dom.inputs.soilType.value = 'custom';
+        }
+
+        function suggestSafeDesign() {
+            const btn = dom.buttons.suggestDesign;
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Calculating...`;
+            setTimeout(() => {
+                const maxRods = 150, minSpacing = 1.5, maxIterations = 250;
+                let iteration = 0, params = readParamsFromDOM(), perf = calculatePerformance(params);
+                while ((perf.Em > perf.Etouch_70 || perf.Es > perf.Estep_70) && iteration < maxIterations) {
+                    iteration++;
+                    if (params.nR < maxRods) params.nR += 4;
+                    else if (params.D > minSpacing) params.D = Math.max(minSpacing, params.D - 0.5);
+                    else { alert("Could not find a safe design. Try increasing grid area or adjusting fault parameters."); btn.disabled = false; btn.textContent = 'Suggest a Safe Design'; return; }
+                    perf = calculatePerformance(params);
+                }
+                if (iteration >= maxIterations) alert("Optimization timed out.");
+                else if (iteration > 0) alert(`Safe design found after ${iteration} iterations! Inputs updated.`);
+                else alert('The current design is already safe!');
+                dom.inputs.numRods.value = params.nR; dom.inputs.conductorSpacing.value = params.D.toFixed(2);
+                mainUpdate();
+                btn.disabled = false; btn.textContent = 'Suggest a Safe Design';
+            }, 10);
+        }
+
+        function runMonteCarlo() {
+            const btn = dom.buttons.runMc;
+            btn.disabled = true; btn.classList.add('btn-disabled');
+            dom.mc.progressContainer.classList.remove('hidden');
+            dom.mc.progressBar.style.width = '0%';
+            dom.mc.resultDisplay.innerHTML = `<p>Running simulations...</p>`;
+            setTimeout(() => {
+                const numSimulations = parseInt(dom.mc.simulations.value);
+                const baseParams = readParamsFromDOM();
+                let bestGprResult = { GPR: Infinity };
+                let bestGprParams = {};
+                
+                const ranges = {
+                    area: [parseFloat(dom.mc.minArea.value), parseFloat(dom.mc.maxArea.value)],
+                    D: [parseFloat(dom.mc.minSpacing.value), parseFloat(dom.mc.maxSpacing.value)],
+                    nR: [parseInt(dom.mc.minRods.value), parseInt(dom.mc.maxRods.value)],
+                };
+
+                for (let i = 0; i < numSimulations; i++) {
+                    let simParams = { ...baseParams };
+                    const area = ranges.area[0] + Math.random()*(ranges.area[1] - ranges.area[0]);
+                    simParams.Lx = simParams.Ly = Math.sqrt(area);
+                    simParams.D = ranges.D[0] + Math.random() * (ranges.D[1] - ranges.D[0]);
+                    simParams.nR = Math.floor(ranges.nR[0] + Math.random() * (ranges.nR[1] - ranges.nR[0]));
+                    
+                    const result = calculatePerformance(simParams);
+
+                    if (isFinite(result.GPR) && result.GPR < bestGprResult.GPR) {
+                        bestGprResult = result;
+                        bestGprParams = simParams;
+                    }
+
+                    if (i % (numSimulations/100) === 0) dom.mc.progressBar.style.width = `${(i/numSimulations)*100}%`;
+                }
+                dom.mc.progressBar.style.width = '100%';
+                
+                if (isFinite(bestGprResult.GPR)) {
+                    const isSafe = bestGprResult.Em < bestGprResult.Etouch_70 && bestGprResult.Es < bestGprResult.Estep_70;
+                    const safetyText = isSafe ? '<span class="text-green-400">(This design is SAFE)</span>' : '<span class="text-yellow-400">(This design may be UNSAFE)</span>';
+            
+                    dom.mc.resultDisplay.innerHTML = `
+                        <p class="mb-2 font-bold text-cyan-400">Lowest GPR Design Found: ${safetyText}</p>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            <span>Lowest GPR:</span> <strong class="text-white">${format(bestGprResult.GPR, 0)} V</strong>
+                            <span>Area:</span> <strong class="text-white">${format(bestGprParams.Lx * bestGprParams.Ly, 0)} m² (${format(bestGprParams.Lx, 1)}m x ${format(bestGprParams.Ly, 1)}m)</strong>
+                            <span>Spacing (D):</span> <strong class="text-white">${format(bestGprParams.D, 2)} m</strong>
+                            <span>Number of Rods (nR):</span> <strong class="text-white">${bestGprParams.nR}</strong>
+                            <span>Touch Voltage (Em):</span> <strong class="${bestGprResult.Em < bestGprResult.Etouch_70 ? 'text-green-400':'text-red-400'}">${format(bestGprResult.Em,0)} V</strong>
+                            <span>Step Voltage (Es):</span> <strong class="${bestGprResult.Es < bestGprResult.Estep_70 ? 'text-green-400':'text-red-400'}">${format(bestGprResult.Es,0)} V</strong>
+                        </div>
+                        <button id="applyMcResult" class="btn-primary text-white font-bold py-1 px-3 rounded-md mt-4 text-sm">Apply This Design</button>
+                    `;
+                    document.getElementById('applyMcResult').addEventListener('click', () => {
+                        setInputs({ gridLengthX: bestGprParams.Lx.toFixed(1), gridLengthY: bestGprParams.Ly.toFixed(1), conductorSpacing: bestGprParams.D.toFixed(2), numRods: bestGprParams.nR });
+                        alert('Best design parameters applied to the main calculator.');
+                    });
+                } else {
+                    dom.mc.resultDisplay.textContent = 'No valid designs found. Check simulation ranges and base parameters.';
+                }
+                btn.disabled = false; btn.classList.remove('btn-disabled');
+            }, 10);
+        }
+        
+        // --- 5. INITIALIZATION ---
+        function init() {
+            setInputs(DEFAULT_PARAMS);
+            ['mcMinArea', 'mcMaxArea', 'mcMinSpacing', 'mcMaxSpacing', 'mcMinRods', 'mcMaxRods'].forEach(key => {
+                const inputEl = dom.mc[key];
+                if (inputEl) {
+                    if (key === 'mcMinArea' || key === 'mcMaxArea') {
+                        const area = parseFloat(dom.inputs.gridLengthX.value) * parseFloat(dom.inputs.gridLengthY.value);
+                        inputEl.placeholder = area.toFixed(0);
+                        if (!inputEl.value) inputEl.value = area.toFixed(0);
+                    } else {
+                         const baseKey = key.replace(/mc(Min|Max)/, '').replace(/s$/, 'cing'); // spacing
+                         if (key.includes('Rods')) baseKey = 'numRods';
+                         if (dom.inputs[baseKey]) {
+                            inputEl.placeholder = dom.inputs[baseKey].value;
+                            if (!inputEl.value) inputEl.value = dom.inputs[baseKey].value;
+                         }
+                    }
+                }
+            });
+
+            Object.values(dom.inputs).forEach(input => input.addEventListener('input', mainUpdate));
+            dom.inputs.soilType.addEventListener('change', handleSoilTypeChange);
+            dom.inputs.soilResistivity.addEventListener('input', handleResistivityInput);
+            dom.buttons.suggestDesign.addEventListener('click', suggestSafeDesign);
+            dom.buttons.reset.addEventListener('click', () => setInputs(DEFAULT_PARAMS));
+            dom.buttons.runMc.addEventListener('click', runMonteCarlo);
+            window.addEventListener('resize', drawGrid);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
